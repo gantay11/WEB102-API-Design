@@ -1,0 +1,92 @@
+README.MD
+
+This project is a RESTful API built using Node.js and Express.js. It simulates a social media platform similar to 
+Instagram, managing resources such as users, posts, comments, likes, and followers.
+The API follows REST principles with proper URI design, HTTP methods, status codes, and content negotiation.
+
+Objectives
+Design RESTful API endpoints
+Implement CRUD operations
+Use correct HTTP methods and status codes
+Handle requests and responses properly
+Implement content negotiation
+Document API endpoints
+
+🛠️ Technologies Used
+Node.js
+Express.js
+Morgan (logging)
+CORS
+Helmet (security)
+Nodemon (development)
+
+Pojected structure
+c:\Users\User\OneDrive\Pictures\Screenshots\Screenshot 2026-03-18 224432.png
+
+API Design
+Example Endpoints
+Users
+GET /users → Get all users
+GET /users/:id → Get specific user
+POST/users → Create user
+PUT /users/:id → Update user
+DELETE /users/:id → Delete user
+
+Posts
+GET /posts
+GET /posts/:id
+POST /posts
+PUT /posts/:id
+DELETE /posts/:id 
+
+
+Setup Instructions
+Implementation Steps
+1. Project Setup
+Initialized Node.js project
+Installed dependencies
+Created folder structure
+
+2. Server Setup
+Created Express server in server.js
+Configured middleware
+
+3. Mock Data
+Used mock data instead of database
+
+4. Middleware
+Error handling middleware
+Async handler
+Response formatter
+
+5. Controllers
+Created controllers for users and posts
+Implemented CRUD logic
+
+6. Routes
+Defined routes for each resource
+
+7. Content Negotiation
+Implemented response formatting based on MIME types
+
+8. API Documentation
+Created docs.html file
+
+Setup code
+1. Clone or Create Project
+mkdir social-media-api
+cd social-media-api
+
+2. Initialize Project
+npm init -y
+
+3. Install Dependencies
+npm install express morgan cors helmet
+npm install nodemon --save-dev
+
+4. Environment Variables
+Create .env file:
+PORT=3000
+
+5. Run the Server
+npm run dev

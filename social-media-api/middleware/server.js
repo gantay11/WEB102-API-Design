@@ -1,1 +1,0 @@
-app.use(require('./middleware/formatResponse'));
