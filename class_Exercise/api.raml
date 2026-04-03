@@ -1,0 +1,121 @@
+#%RAML 1.0
+title: Book Library API
+version: v1
+baseUri: http://localhost:3000/api
+mediaType: application/json
+description: |
+  A simple API to manage a collection of books in a library.
+
+types:
+  Book:
+    type: object
+    properties:
+      id: integer
+      title: string
+      author: string
+      publishedYear: integer
+      genre: string
+    example:
+      id: 1
+      title: "The Great Gatsby"
+      author: "F. Scott Fitzgerald"
+      publishedYear: 1925
+      genre: "Fiction"
+
+  BookInput:
+    type: object
+    properties:
+      title: string
+      author: string
+      publishedYear: integer
+      genre: string
+    example:
+      title: "1984"
+      author: "George Orwell"
+      publishedYear: 1949
+      genre: "Dystopian"
+
+  Error:
+    type: object
+    properties:
+      message: string
+    example:
+      message: "Book not found"
+
+# Root endpoint
+/books:
+  get:
+    description: Retrieve all books
+    responses:
+      200:
+        body:
+          application/json:
+            type: Book[]
+            example:
+              - id: 1
+                title: "The Great Gatsby"
+                author: "F. Scott Fitzgerald"
+                publishedYear: 1925
+                genre: "Fiction"
+
+  post:
+    description: Add a new book
+    body:
+      application/json:
+        type: BookInput
+    responses:
+      201:
+        body:
+          application/json:
+            type: Book
+      400:
+        body:
+          application/json:
+            type: Error
+
+  /{id}:
+    uriParameters:
+      id:
+        type: integer
+        description: Unique ID of the book
+
+    get:
+      description: Get a book by ID
+      responses:
+        200:
+          body:
+            application/json:
+              type: Book
+        404:
+          body:
+            application/json:
+              type: Error
+
+    put:
+      description: Update a book by ID
+      body:
+        application/json:
+          type: BookInput
+      responses:
+        200:
+          body:
+            application/json:
+              type: Book
+        400:
+          body:
+            application/json:
+              type: Error
+        404:
+          body:
+            application/json:
+              type: Error
+
+    delete:
+      description: Delete a book by ID
+      responses:
+        204:
+          description: Book deleted successfully
+        404:
+          body:
+            application/json:
+              type: Error
