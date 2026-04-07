@@ -1,7 +1,7 @@
-What I Built
+## What I Built
 In this practical, I designed and implemented a RESTful API backend for a TikTok-style application using Node.js and Express. The API supports three core resources — Videos, Users, and Comments — each with full CRUD operations and social interaction features like likes and follows.
 
-What I Learned
+## What I Learned
 1. REST API Design Principles
 This practical gave me hands-on experience applying REST conventions properly. I learned that:
 
@@ -24,12 +24,13 @@ Maintaining nextIds counters simulates what an auto-incrementing database primar
 5. Validation and Error Handling
 I implemented validation at the controller level — checking for required fields, verifying related resources exist before linking them, and preventing impossible states (e.g., self-following). Returning meaningful error messages with appropriate status codes is something I'll carry forward into every API I build.
 
-Challenges I Faced
+## Challenges I Faced
 Cascading Deletes: The trickiest part was ensuring consistency when deleting users or videos. It's easy to remove the primary record but forget to clean up references elsewhere. I solved this by filtering related arrays in the data store after each delete.
 Understanding Route Order: Early on I had to think carefully about route ordering in Express — more specific routes (like /:id/comments) must be defined before catch-all patterns, or they can be mistakenly matched by the wrong handler.
 Bidirectional Relationships: The follow/unfollow feature requires updating two records simultaneously (the target user's followers array AND the follower's following array). Missing either side would create data inconsistency.
+![alt text](<Screenshot 2026-04-07 171001.png>) This error was main problem for me to solve it. sometime its working.
 
-What I Would Improve
+## What I Would Improve
 
 Add a real database – MongoDB with Mongoose or PostgreSQL with Prisma would make data persistent and support more complex queries
 Authentication & Authorization – Add JWT-based auth so only the video owner can delete their own videos
@@ -38,5 +39,5 @@ Input sanitization – Use a validation library like express-validator or Joi fo
 Unit tests – Write tests with Jest and Supertest to verify each endpoint behaves correctly under edge cases
 
 
-How This Connects to the Frontend
+## How This Connects to the Frontend
 This API is designed to integrate with a Next.js frontend. The frontend would call these endpoints using fetch or axios, and the CORS middleware I configured ensures cross-origin requests from the Next.js dev server are allowed. This practical gave me a much clearer mental model of the request-response cycle between a frontend and backend, and why well-designed APIs make frontend development significantly easier.
