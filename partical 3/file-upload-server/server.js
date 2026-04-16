@@ -81,3 +81,10 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+// Replace the simple cors() call with:
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  methods:['GET', 'POST'],
+  allowedHeaders: ['Content-Type']
+}));
