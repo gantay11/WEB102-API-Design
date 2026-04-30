@@ -1,29 +1,15 @@
 const prisma = require('../lib/prisma');
 
-// Get all comments
+// Get all comments (GET /api/comments)
 exports.getAllComments = async (req, res) => {
   try {
-    const { id } = req.params;
     const { cursor, limit = 20 } = req.query;
     const limitNum = parseInt(limit) || 20;
-    
-    // Check if video exists
-    const videoExists = await prisma.video.findUnique({
-      where: { id: parseInt(id) },
-    });
-    
-    if (!videoExists) {
-      return res.status(404).json({ message: 'Video not found' });
-    }
-    
-    // Build query options
+
     const queryOptions = {
-      where: {
-        videoId: parseInt(id),
-      },
-      take: limitNum + 1, // Take one extra to determine if there are more items
+      take: limitNum + 1,
       orderBy: {
-        createdAt: 'desc', // Newest comments first
+        createdAt: 'desc',
       },
       include: {
         user: {
@@ -31,62 +17,50 @@ exports.getAllComments = async (req, res) => {
             id: true,
             username: true,
             name: true,
-            avatar: true
-          }
+            avatar: true,
+          },
         },
         _count: {
           select: {
-            likes: true
-          }
+            likes: true,
+          },
         },
         likes: {
           select: {
             userId: true,
           },
         },
-      }
+      },
     };
-    
-    // If cursor is provided, filter records after the cursor
+
     if (cursor) {
-      queryOptions.cursor = {
-        id: parseInt(cursor),
-      };
-      queryOptions.skip = 1; // Skip the cursor itself
+      queryOptions.cursor = { id: parseInt(cursor) };
+      queryOptions.skip = 1;
     }
-    
-    // Get comments
+
     const comments = await prisma.comment.findMany(queryOptions);
-    
-    // Check if there are more items
+
     const hasNextPage = comments.length > limitNum;
-    
-    // Remove the extra item we used to check for more data
-    if (hasNextPage) {
-      comments.pop();
-    }
-    
-    // If user is logged in, check if they've liked the comments
+    if (hasNextPage) comments.pop();
+
     if (req.user) {
       const userId = req.user.id;
-      
-      // Add isLiked property to comments
-      comments.forEach(comment => {
-        comment.isLiked = comment.likes.some(like => like.userId === userId);
+      comments.forEach((comment) => {
+        comment.isLiked = comment.likes.some((like) => like.userId === userId);
       });
     }
-    
-    // Format comments
-    const formattedComments = comments.map(comment => ({
+
+    const formattedComments = comments.map((comment) => ({
       ...comment,
       likeCount: comment._count.likes,
       _count: undefined,
       likes: undefined,
     }));
-    
-    // Get the next cursor from the last item
-    const nextCursor = hasNextPage ? formattedComments[formattedComments.length - 1].id.toString() : null;
-    
+
+    const nextCursor = hasNextPage
+      ? formattedComments[formattedComments.length - 1].id.toString()
+      : null;
+
     res.status(200).json({
       comments: formattedComments,
       pagination: {
@@ -95,16 +69,91 @@ exports.getAllComments = async (req, res) => {
       },
     });
   } catch (error) {
+    console.error('Error getting all comments:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Get comments by video ID (GET /api/videos/:id/comments)
+exports.getVideoComments = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { cursor, limit = 20 } = req.query;
+    const limitNum = parseInt(limit) || 20;
+
+    const videoExists = await prisma.video.findUnique({
+      where: { id: parseInt(id) },
+    });
+
+    if (!videoExists) {
+      return res.status(404).json({ message: 'Video not found' });
+    }
+
+    const queryOptions = {
+      where: { videoId: parseInt(id) },
+      take: limitNum + 1,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            name: true,
+            avatar: true,
+          },
+        },
+        _count: {
+          select: { likes: true },
+        },
+        likes: {
+          select: { userId: true },
+        },
+      },
+    };
+
+    if (cursor) {
+      queryOptions.cursor = { id: parseInt(cursor) };
+      queryOptions.skip = 1;
+    }
+
+    const comments = await prisma.comment.findMany(queryOptions);
+
+    const hasNextPage = comments.length > limitNum;
+    if (hasNextPage) comments.pop();
+
+    if (req.user) {
+      const userId = req.user.id;
+      comments.forEach((comment) => {
+        comment.isLiked = comment.likes.some((like) => like.userId === userId);
+      });
+    }
+
+    const formattedComments = comments.map((comment) => ({
+      ...comment,
+      likeCount: comment._count.likes,
+      _count: undefined,
+      likes: undefined,
+    }));
+
+    const nextCursor = hasNextPage
+      ? formattedComments[formattedComments.length - 1].id.toString()
+      : null;
+
+    res.status(200).json({
+      comments: formattedComments,
+      pagination: { nextCursor, hasNextPage },
+    });
+  } catch (error) {
     console.error(`Error getting comments for video ${req.params.id}:`, error);
     res.status(500).json({ message: 'Server error' });
   }
 };
 
-// Get comment by ID
+// Get comment by ID (GET /api/comments/:id)
 exports.getCommentById = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const comment = await prisma.comment.findUnique({
       where: { id: parseInt(id) },
       include: {
@@ -113,42 +162,38 @@ exports.getCommentById = async (req, res) => {
             id: true,
             username: true,
             name: true,
-            avatar: true
-          }
+            avatar: true,
+          },
         },
         video: {
           select: {
             id: true,
             caption: true,
-            thumbnailUrl: true
-          }
+            thumbnailUrl: true,
+          },
         },
         _count: {
-          select: { likes: true }
-        }
-      }
+          select: { likes: true },
+        },
+      },
     });
-    
+
     if (!comment) {
       return res.status(404).json({ message: 'Comment not found' });
     }
-    
-    // If user is logged in, check if they've liked the comment
+
     if (req.user) {
-      const userId = req.user.id;
-      
       const like = await prisma.commentLike.findUnique({
         where: {
           userId_commentId: {
-            userId: parseInt(userId),
-            commentId: parseInt(id)
-          }
-        }
+            userId: parseInt(req.user.id),
+            commentId: parseInt(id),
+          },
+        },
       });
-      
       comment.isLiked = !!like;
     }
-    
+
     res.status(200).json(comment);
   } catch (error) {
     console.error(`Error fetching comment ${req.params.id}:`, error);
@@ -156,27 +201,25 @@ exports.getCommentById = async (req, res) => {
   }
 };
 
-// Create comment
+// Create comment (POST /api/comments)
 exports.createComment = async (req, res) => {
   try {
     const { videoId, content } = req.body;
     const userId = req.user.id;
-    
-    // Check if video exists
+
     const video = await prisma.video.findUnique({
-      where: { id: parseInt(videoId) }
+      where: { id: parseInt(videoId) },
     });
-    
+
     if (!video) {
       return res.status(404).json({ message: 'Video not found' });
     }
-    
-    // Create comment
+
     const comment = await prisma.comment.create({
       data: {
         content,
         userId: parseInt(userId),
-        videoId: parseInt(videoId)
+        videoId: parseInt(videoId),
       },
       include: {
         user: {
@@ -184,12 +227,12 @@ exports.createComment = async (req, res) => {
             id: true,
             username: true,
             name: true,
-            avatar: true
-          }
-        }
-      }
+            avatar: true,
+          },
+        },
+      },
     });
-    
+
     res.status(201).json(comment);
   } catch (error) {
     console.error('Error creating comment:', error);
@@ -197,45 +240,40 @@ exports.createComment = async (req, res) => {
   }
 };
 
-// Update comment
+// Update comment (PUT /api/comments/:id)
 exports.updateComment = async (req, res) => {
   try {
     const { id } = req.params;
     const { content } = req.body;
     const userId = req.user.id;
-    
-    // Check if comment exists and belongs to user
+
     const comment = await prisma.comment.findUnique({
-      where: { id: parseInt(id) }
+      where: { id: parseInt(id) },
     });
-    
+
     if (!comment) {
       return res.status(404).json({ message: 'Comment not found' });
     }
-    
+
     if (comment.userId !== parseInt(userId)) {
       return res.status(403).json({ message: 'Not authorized to update this comment' });
     }
-    
-    // Update comment
+
     const updatedComment = await prisma.comment.update({
       where: { id: parseInt(id) },
-      data: {
-        content,
-        updatedAt: new Date()
-      },
+      data: { content, updatedAt: new Date() },
       include: {
         user: {
           select: {
             id: true,
             username: true,
             name: true,
-            avatar: true
-          }
-        }
-      }
+            avatar: true,
+          },
+        },
+      },
     });
-    
+
     res.status(200).json(updatedComment);
   } catch (error) {
     console.error(`Error updating comment ${req.params.id}:`, error);
@@ -243,36 +281,30 @@ exports.updateComment = async (req, res) => {
   }
 };
 
-// Delete comment
+// Delete comment (DELETE /api/comments/:id)
 exports.deleteComment = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
-    
-    // Check if comment exists
+
     const comment = await prisma.comment.findUnique({
       where: { id: parseInt(id) },
-      include: {
-        video: {
-          select: { userId: true }
-        }
-      }
+      include: { video: { select: { userId: true } } },
     });
-    
+
     if (!comment) {
       return res.status(404).json({ message: 'Comment not found' });
     }
-    
-    // Check if user is authorized to delete (comment owner or video owner)
-    if (comment.userId !== parseInt(userId) && comment.video.userId !== parseInt(userId)) {
+
+    if (
+      comment.userId !== parseInt(userId) &&
+      comment.video.userId !== parseInt(userId)
+    ) {
       return res.status(403).json({ message: 'Not authorized to delete this comment' });
     }
-    
-    // Delete comment
-    await prisma.comment.delete({
-      where: { id: parseInt(id) }
-    });
-    
+
+    await prisma.comment.delete({ where: { id: parseInt(id) } });
+
     res.status(200).json({ message: 'Comment deleted successfully' });
   } catch (error) {
     console.error(`Error deleting comment ${req.params.id}:`, error);
@@ -280,64 +312,59 @@ exports.deleteComment = async (req, res) => {
   }
 };
 
-// Like/unlike comment
+// Like/unlike comment (POST/DELETE /api/comments/:id/like)
 exports.toggleCommentLike = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
-    
-    // Check if comment exists
+
     const comment = await prisma.comment.findUnique({
-      where: { id: parseInt(id) }
+      where: { id: parseInt(id) },
     });
-    
+
     if (!comment) {
       return res.status(404).json({ message: 'Comment not found' });
     }
-    
-    // Check if like already exists
+
     const existingLike = await prisma.commentLike.findUnique({
       where: {
         userId_commentId: {
           userId: parseInt(userId),
-          commentId: parseInt(id)
-        }
-      }
+          commentId: parseInt(id),
+        },
+      },
     });
-    
+
     let action;
-    
+
     if (existingLike) {
-      // Unlike - delete the like
       await prisma.commentLike.delete({
         where: {
           userId_commentId: {
             userId: parseInt(userId),
-            commentId: parseInt(id)
-          }
-        }
+            commentId: parseInt(id),
+          },
+        },
       });
       action = 'unliked';
     } else {
-      // Like - create a like
       await prisma.commentLike.create({
         data: {
           userId: parseInt(userId),
-          commentId: parseInt(id)
-        }
+          commentId: parseInt(id),
+        },
       });
       action = 'liked';
     }
-    
-    // Get updated like count
+
     const likeCount = await prisma.commentLike.count({
-      where: { commentId: parseInt(id) }
+      where: { commentId: parseInt(id) },
     });
-    
+
     res.status(200).json({
       message: `Comment ${action} successfully`,
       action,
-      likeCount
+      likeCount,
     });
   } catch (error) {
     console.error(`Error toggling like for comment ${req.params.id}:`, error);
@@ -347,9 +374,10 @@ exports.toggleCommentLike = async (req, res) => {
 
 module.exports = {
   getAllComments: exports.getAllComments,
+  getVideoComments: exports.getVideoComments,
   getCommentById: exports.getCommentById,
   createComment: exports.createComment,
   updateComment: exports.updateComment,
   deleteComment: exports.deleteComment,
-  toggleCommentLike: exports.toggleCommentLike
+  toggleCommentLike: exports.toggleCommentLike,
 };
