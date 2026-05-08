@@ -3,26 +3,28 @@ const bcrypt = require('bcrypt');
 
 const prisma = new PrismaClient();
 
+const sampleVideos = [
+  'https://www.w3schools.com/html/mov_bbb.mp4',
+  'https://www.w3schools.com/html/movie.mp4',
+  'https://samplelib.com/lib/preview/mp4/sample-5s.mp4',
+  'https://samplelib.com/lib/preview/mp4/sample-10s.mp4',
+  'https://samplelib.com/lib/preview/mp4/sample-15s.mp4',
+];
+
 async function main() {
   console.log('Starting seeding process...');
 
-  // Clear existing data if needed (be careful with this in production)
   console.log('Cleaning up existing data...');
-  
   await prisma.commentLike.deleteMany({});
   await prisma.videoLike.deleteMany({});
   await prisma.comment.deleteMany({});
   await prisma.video.deleteMany({});
   await prisma.follow.deleteMany({});
   await prisma.user.deleteMany({});
-
   console.log('Database cleaned.');
-  
-  // Create 10 users
+
   console.log('Creating users...');
-  
   const hashedPassword = await bcrypt.hash('password123', 10);
-  
   const users = [];
   for (let i = 1; i <= 10; i++) {
     const user = await prisma.user.create({
@@ -36,22 +38,21 @@ async function main() {
       }
     });
     users.push(user);
-    console.log(`Created user: ${user.username}`);
+    console.log(`Created user: ${user.username} (id: ${user.id})`);
   }
-  
-  // Create 50 videos (5 per user)
+
   console.log('Creating videos...');
-  
   const videos = [];
-  for (let userId = 1; userId <= 10; userId++) {
+  for (let i = 0; i < users.length; i++) {
     for (let j = 1; j <= 5; j++) {
+      const videoUrl = sampleVideos[(j - 1) % sampleVideos.length];
       const video = await prisma.video.create({
         data: {
-          userId,
-          caption: `Video ${j} from user ${userId}`,
-          videoUrl: `https://example.com/videos/user${userId}_video${j}.mp4`,
-          thumbnailUrl: `https://example.com/thumbnails/user${userId}_video${j}.jpg`,
-          audioName: `Original Sound - User ${userId}`,
+          userId: users[i].id, // ✅ use actual user ID
+          caption: `Video ${j} from user ${i + 1}`,
+          videoUrl: videoUrl,
+          thumbnailUrl: `https://i.pravatar.cc/300?u=video${i + 1}_${j}`,
+          audioName: `Original Sound - User ${i + 1}`,
           views: Math.floor(Math.random() * 10000)
         }
       });
@@ -60,104 +61,76 @@ async function main() {
     }
   }
 
-  // Create 200 comments (roughly 4 per video)
   console.log('Creating comments...');
-  
   for (let i = 0; i < 200; i++) {
     const randomVideoIndex = Math.floor(Math.random() * videos.length);
     const randomUserIndex = Math.floor(Math.random() * users.length);
-    
-    const comment = await prisma.comment.create({
+    await prisma.comment.create({
       data: {
         userId: users[randomUserIndex].id,
         videoId: videos[randomVideoIndex].id,
-        content: `This is comment ${i + 1}. Lorem ipsum dolor sit amet, consectetur adipiscing elit.`
+        content: `This is comment ${i + 1}. Lorem ipsum dolor sit amet.`
       }
     });
-    console.log(`Created comment: ${comment.id}`);
+    console.log(`Created comment: ${i + 1}`);
   }
 
-  // Create 300 video likes
   console.log('Creating video likes...');
-  
   const videoLikes = [];
   for (let i = 0; i < 300; i++) {
     const randomVideoIndex = Math.floor(Math.random() * videos.length);
     const randomUserIndex = Math.floor(Math.random() * users.length);
-    
     const videoId = videos[randomVideoIndex].id;
     const userId = users[randomUserIndex].id;
-    
-    // Check if this like already exists to avoid unique constraint errors
-    const existingLike = videoLikes.find(like => like.userId === userId && like.videoId === videoId);
-    
+    const existingLike = videoLikes.find(
+      like => like.userId === userId && like.videoId === videoId
+    );
     if (!existingLike) {
       try {
-        const like = await prisma.videoLike.create({
-          data: {
-            userId,
-            videoId
-          }
-        });
+        await prisma.videoLike.create({ data: { userId, videoId } });
         videoLikes.push({ userId, videoId });
         console.log(`Created video like: User ${userId} liked Video ${videoId}`);
       } catch (error) {
-        console.log(`Skipping duplicate like: User ${userId} -> Video ${videoId}`);
+        console.log(`Skipping duplicate like`);
       }
     }
   }
 
-  // Create 150 comment likes
   console.log('Creating comment likes...');
-  
-  // First get all comments
   const comments = await prisma.comment.findMany();
-  
   for (let i = 0; i < 150; i++) {
     const randomCommentIndex = Math.floor(Math.random() * comments.length);
     const randomUserIndex = Math.floor(Math.random() * users.length);
-    
     const commentId = comments[randomCommentIndex].id;
     const userId = users[randomUserIndex].id;
-    
     try {
-      const like = await prisma.commentLike.create({
-        data: {
-          userId,
-          commentId
-        }
-      });
-      console.log(`Created comment like: User ${userId} liked Comment ${commentId}`);
+      await prisma.commentLike.create({ data: { userId, commentId } });
+      console.log(`Created comment like`);
     } catch (error) {
-      console.log(`Skipping duplicate comment like: User ${userId} -> Comment ${commentId}`);
+      console.log(`Skipping duplicate comment like`);
     }
   }
 
-  // Create 40 follows
   console.log('Creating follows...');
-  
   for (let i = 0; i < 40; i++) {
-    let followerId = Math.floor(Math.random() * 10) + 1;
-    let followingId = Math.floor(Math.random() * 10) + 1;
-    
-    // Avoid self-follows
-    while (followerId === followingId) {
-      followingId = Math.floor(Math.random() * 10) + 1;
+    let followerIndex = Math.floor(Math.random() * users.length);
+    let followingIndex = Math.floor(Math.random() * users.length);
+    while (followerIndex === followingIndex) {
+      followingIndex = Math.floor(Math.random() * users.length);
     }
-    
     try {
-      const follow = await prisma.follow.create({
+      await prisma.follow.create({
         data: {
-          followerId,
-          followingId
+          followerId: users[followerIndex].id,
+          followingId: users[followingIndex].id
         }
       });
-      console.log(`Created follow: User ${followerId} follows User ${followingId}`);
+      console.log(`Created follow`);
     } catch (error) {
-      console.log(`Skipping duplicate follow: User ${followerId} -> User ${followingId}`);
+      console.log(`Skipping duplicate follow`);
     }
   }
-  
+
   console.log('Seeding completed successfully!');
 }
 

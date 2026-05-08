@@ -320,7 +320,7 @@ exports.updateVideo = async (req, res) => {
   }
 };
 
-// Delete video with Supabase storage cleanup
+// Delete video
 exports.deleteVideo = async (req, res) => {
   try {
     const { id } = req.params;
