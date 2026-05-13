@@ -27,8 +27,6 @@ Integrating Supabase into the Express.js backend was a valuable experience. I le
 ### Prisma Schema Updates
 I learned how to safely add new fields to an existing Prisma schema without losing data. The `prisma db push` command was particularly useful when the standard migration approach had conflicts with shadow database issues.
 
----
-
 ## Challenges Faced
 
 ### 1. Finding the Correct Project Folder
@@ -45,16 +43,12 @@ Understanding which Supabase key to use where was initially confusing. I learned
 - The `service_role` key is for the backend server (has full access, must be kept secret)
 - The `anon` public key is for the frontend (safe to expose, limited by RLS policies)
 
----
-
 ## What I Would Do Differently
 
 1. **Organize folders better** — I would name project folders consistently (e.g., `practical5` instead of `partical5`) to avoid navigation errors.
 2. **Test storage uploads independently** — Before integrating with the full controller, I would test the storage service with a simple standalone script to verify Supabase connectivity.
 3. **Use environment variable validation** — I would add stricter validation at startup to ensure all required environment variables are present before the server starts.
 4. **Add file type and size restrictions** — In a production app, I would restrict uploads to specific MIME types (e.g., only `video/mp4`) and enforce file size limits to prevent abuse.
-
----
 
 ## Conclusion
 
