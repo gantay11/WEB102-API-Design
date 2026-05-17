@@ -1,11 +1,3 @@
-node_modules
-# Keep environment variables out of version control
+﻿node_modules/
 .env
-# Ignore log files
-logs
-*.log
-# Ignore build output
-dist
-build
-# Ignore coverage reportscoverage
-# Ignore temporary files    
+dist/
